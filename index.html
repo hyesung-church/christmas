@@ -73,6 +73,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 36px 24px 24px;
+    padding-bottom: 50px;
     color: #fff;
     text-align: center;
     text-shadow: 0 2px 12px rgba(0,0,0,.35);
@@ -84,10 +85,10 @@
     line-height: 1.2;
     font-weight: 400;
   }
-  .hero-info { font-size: 16px; line-height: 1.9; letter-spacing: .02em; }
-  .hero-info .date { font-size: 20px; font-weight: 600; letter-spacing: .08em; }
+  .hero-info { font-size: 16px; line-height: 1.9; letter-spacing: .02em; animation: bob 1.8s ease-in-out infinite;}
+  .hero-info .date { font-size: 20px; font-weight: 600; letter-spacing: .08em; animation: bob 1.8s ease-in-out infinite;}
   .scroll-hint {
-    margin-top: 18px;
+    margin-top: 9px;
     font-size: 12px;
     opacity: .8;
     animation: bob 1.8s ease-in-out infinite;
@@ -387,7 +388,7 @@
       </div>
       <div>
         <dt>장소</dt>
-        <dd>혜성교회<br><small>경기도 화성시 효행구 봉담읍 삼천병마로783번길 15</small></dd>
+        <dd>혜성교회<br><small>경기도 화성시 효행구 봉담읍 <br>삼천병마로783번길 15</small></dd>
       </div>
     </dl>
   </section>
@@ -407,12 +408,12 @@
       <span class="en">Guestbook</span>
       <span class="ko">방명록</span>
     </div>
+    <ul class="gb-list" id="gbList"></ul>
     <form class="gb-form" id="gbForm">
       <input name="name" maxlength="20" placeholder="이름" required>
       <textarea name="msg" maxlength="300" placeholder="축하와 응원의 메시지를 남겨주세요" required></textarea>
       <button type="submit">남기기</button>
     </form>
-    <ul class="gb-list" id="gbList"></ul>
     <button class="gb-more" id="gbMore" hidden>더보기</button>
   </section>
 
