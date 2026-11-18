@@ -6,6 +6,7 @@
 <title>Merry Christmas 초대장</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="image" href="images/main.webp" fetchpriority="high">
 <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Noto+Serif+KR:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -261,8 +262,7 @@
   <!-- 1. 메인 사진 -->
   <section class="hero">
     <!-- 메인 사진 -->
-    <img src="images/main.webp" alt="메인 사진" onerror="this.remove()">
-    <canvas id="snow"></canvas>
+    <img src="images/main.webp" alt="메인 사진" fetchpriority="high" decoding="async" onerror="this.remove()">
 
     <div class="hero-text">
       <h1 class="hero-title">Merry Christmas</h1>
@@ -356,7 +356,7 @@
 </div>
 
 <!-- 배경음악: music 폴더에 bgm.mp3 넣으면 됩니다 -->
-<audio id="bgm" src="music/bgm.mp3" loop preload="auto"></audio>
+<audio id="bgm" src="music/bgm.mp3" loop preload="none"></audio>
 <button class="bgm-btn" id="bgmBtn" aria-label="배경음악 켜기/끄기">♪</button>
 
 <script>
@@ -376,14 +376,24 @@ for (let i = 1; i <= GALLERY_COUNT; i++) {
   const img = new Image();
   img.alt = `갤러리 사진 ${i}`;
   const slot = { src, loaded: false };
+  img.decoding = 'async';
   img.onload = () => { slot.loaded = true; btn.innerHTML = ''; btn.appendChild(img); };
-  img.src = src;
+  slot.load = () => { if (!img.src) img.src = src; };
   btn.addEventListener('click', () => {
     if (!slot.loaded) return;
     openLightbox(slots.indexOf(slot));
   });
   slots.push(slot);
   gallery.appendChild(btn);
+
+  
+  if ('IntersectionObserver' in window) {
+  const io = new IntersectionObserver(entries => {
+    if (entries.some(e => e.isIntersecting)) { slots.forEach(s => s.load()); io.disconnect(); }
+  }, { rootMargin: '600px' });
+  io.observe(gallery);
+} else {
+  slots.forEach(s => s.load());
 }
 
 const loaded = () => slots.filter(s => s.loaded);
