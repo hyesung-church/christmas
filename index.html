@@ -263,6 +263,7 @@
   <section class="hero">
     <!-- 메인 사진 -->
     <img src="images/main.webp" alt="메인 사진" fetchpriority="high" decoding="async" onerror="this.remove()">
+    <canvas id="snow"></canvas>
 
     <div class="hero-text">
       <h1 class="hero-title">Merry Christmas</h1>
@@ -385,9 +386,10 @@ for (let i = 1; i <= GALLERY_COUNT; i++) {
   });
   slots.push(slot);
   gallery.appendChild(btn);
+}
 
-  
-  if ('IntersectionObserver' in window) {
+// 갤러리 사진은 스크롤해서 갤러리 근처에 오면 그때 불러오기 (첫 화면이 빨리 뜨도록)
+if ('IntersectionObserver' in window) {
   const io = new IntersectionObserver(entries => {
     if (entries.some(e => e.isIntersecting)) { slots.forEach(s => s.load()); io.disconnect(); }
   }, { rootMargin: '600px' });
