@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Merry Christmas 초대장</title>
-<meta name="description" content="2026년 12월 24일(목) 오후 6시 30분, 혜성교회 성탄 파티에 초대합니다.">
+<meta name="description" content="12월 24일(목) 오후 6시 30분, 혜성교회 성탄 파티에 초대합니다.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://hyesung-church.github.io/christmas/">
-<meta property="og:title" content="혜성교회 성탄 파티 초대장">
-<meta property="og:description" content="12월 24일(목) 오후 6시 30분 · 혜성교회에서 함께해요">
+<meta property="og:title" content="혜성교회 성탄절 놀러오세요!">
+<meta property="og:description" content="12.24(목) 18:30 VIP 초청 파티 식사 · 20:00 즐겁고 멋진 공연">
 <meta property="og:image" content="https://hyesung-church.github.io/christmas/images/thumbnail.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -255,6 +255,43 @@
     font-size: 13px;
     color: var(--muted);
   }
+
+  /* ───────── 방명록 ───────── */
+  .guestbook { background: #efe8e0; }
+  .gb-form {
+    display: flex; flex-direction: column; gap: 8px;
+    max-width: 360px; margin: 0 auto 28px;
+  }
+  .gb-form input, .gb-form textarea {
+    width: 100%; padding: 12px 14px;
+    border: 1px solid #ddd3c9; border-radius: 8px; background: #fff;
+    font: inherit; font-size: 15px; color: var(--ink);
+  }
+  .gb-form textarea { height: 96px; resize: none; line-height: 1.6; }
+  .gb-form input:focus, .gb-form textarea:focus { outline: none; border-color: var(--accent); }
+  .gb-form button {
+    padding: 12px; border: 0; border-radius: 8px;
+    background: var(--accent); color: #fff;
+    font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  .gb-form button:disabled { opacity: .5; cursor: default; }
+  .gb-list { list-style: none; max-width: 360px; margin: 0 auto; }
+  .gb-list li {
+    background: #fff; border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 8px;
+    word-break: keep-all; overflow-wrap: anywhere;
+  }
+  .gb-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .gb-name { font-weight: 600; color: var(--accent); font-size: 14px; }
+  .gb-date { font-size: 12px; color: var(--muted); }
+  .gb-msg { font-size: 14px; line-height: 1.7; white-space: pre-wrap; }
+  .gb-empty { text-align: center; font-size: 13px; color: var(--muted); padding: 12px 0; }
+  .gb-more {
+    display: block; margin: 12px auto 0; padding: 8px 20px;
+    border: 1px solid #ddd3c9; border-radius: 20px; background: none;
+    font: inherit; font-size: 13px; color: var(--muted); cursor: pointer;
+  }
+  .gb-more[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -352,6 +389,21 @@
       <span class="ko">갤러리</span>
     </div>
     <div class="gallery" id="gallery"></div>
+  </section>
+
+  <!-- 5. 방명록 -->
+  <section class="section guestbook">
+    <div class="section-title">
+      <span class="en">Guestbook</span>
+      <span class="ko">방명록</span>
+    </div>
+    <form class="gb-form" id="gbForm">
+      <input name="name" maxlength="20" placeholder="이름" required>
+      <textarea name="msg" maxlength="300" placeholder="축하와 응원의 메시지를 남겨주세요" required></textarea>
+      <button type="submit">남기기</button>
+    </form>
+    <ul class="gb-list" id="gbList"></ul>
+    <button class="gb-more" id="gbMore" hidden>더보기</button>
   </section>
 
 </div>
@@ -508,6 +560,75 @@ document.addEventListener('visibilitychange', () => {
 });
 // 음악 파일이 없으면 버튼 숨기기
 bgm.addEventListener('error', () => { bgmBtn.style.display = 'none'; });
+
+/* ── 방명록 (구글 스프레드시트에 저장) ── */
+// ↓ 구글 Apps Script 배포 후 받은 웹 앱 URL을 따옴표 안에 붙여넣으세요
+const GUESTBOOK_URL = 'https://script.google.com/macros/s/AKfycbxJu_beXn6vPFk5SNRJzbGucINWLvjGUwJFUSj-qDXd6TA9izdPYaMckDrWKYAH0nAZ/exec';
+
+const gbForm = document.getElementById('gbForm');
+const gbList = document.getElementById('gbList');
+const gbMore = document.getElementById('gbMore');
+const GB_PAGE = 10;          // 한 번에 보여줄 개수
+let gbItems = [], gbShown = GB_PAGE;
+
+function gbDate(t) {
+  const d = new Date(t);
+  return `${d.getMonth() + 1}.${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+function gbRender() {
+  gbList.innerHTML = '';
+  if (!gbItems.length) {
+    gbList.innerHTML = '<li class="gb-empty">첫 번째 메시지를 남겨주세요 ✨</li>';
+  }
+  gbItems.slice(0, gbShown).forEach(it => {
+    const li = document.createElement('li');
+    li.innerHTML = '<div class="gb-head"><span class="gb-name"></span><span class="gb-date"></span></div><p class="gb-msg"></p>';
+    li.querySelector('.gb-name').textContent = it.name;     // textContent: 글자 그대로만 표시 (안전)
+    li.querySelector('.gb-date').textContent = gbDate(it.time);
+    li.querySelector('.gb-msg').textContent = it.msg;
+    gbList.appendChild(li);
+  });
+  gbMore.hidden = gbItems.length <= gbShown;
+}
+function gbLoad() {
+  if (!GUESTBOOK_URL) { gbList.innerHTML = '<li class="gb-empty">방명록 준비 중입니다</li>'; return; }
+  gbList.innerHTML = '<li class="gb-empty">불러오는 중…</li>';
+  fetch(GUESTBOOK_URL)
+    .then(r => r.json())
+    .then(list => { gbItems = list; gbRender(); })
+    .catch(() => { gbList.innerHTML = '<li class="gb-empty">방명록을 불러오지 못했어요</li>'; });
+}
+gbMore.addEventListener('click', () => { gbShown += GB_PAGE; gbRender(); });
+
+gbForm.addEventListener('submit', e => {
+  e.preventDefault();
+  if (!GUESTBOOK_URL) return alert('방명록 준비 중입니다');
+  const name = gbForm.name.value.trim();
+  const msg = gbForm.msg.value.trim();
+  if (!name || !msg) return;
+  const btn = gbForm.querySelector('button');
+  btn.disabled = true; btn.textContent = '남기는 중…';
+  fetch(GUESTBOOK_URL, { method: 'POST', body: JSON.stringify({ name, msg }) })
+    .then(r => r.json())
+    .then(res => {
+      if (!res.ok) throw 0;
+      gbItems.unshift({ name, msg, time: Date.now() });   // 바로 목록 맨 위에 보이기
+      gbRender();
+      gbForm.reset();
+    })
+    .catch(() => alert('잠시 후 다시 시도해주세요'))
+    .finally(() => { btn.disabled = false; btn.textContent = '남기기'; });
+});
+
+// 방명록도 스크롤해서 가까이 왔을 때 불러오기
+if ('IntersectionObserver' in window) {
+  const gbIo = new IntersectionObserver(entries => {
+    if (entries.some(e => e.isIntersecting)) { gbLoad(); gbIo.disconnect(); }
+  }, { rootMargin: '600px' });
+  gbIo.observe(gbForm);
+} else {
+  gbLoad();
+}
 
 /* ── 눈 내리는 효과 ── */
 const canvas = document.getElementById('snow');
