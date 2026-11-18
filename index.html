@@ -222,6 +222,11 @@
     line-height: 2;
     margin-bottom: 24px;
   }
+  .invite-donation {
+    font-size: 13px;
+    line-height: 2;
+    margin-bottom: 24px;
+  }
   .invite-end {
     margin-top: 36px;
     font-size: 16px;
@@ -354,6 +359,11 @@
     <p class="invite-body">
       반짝이는 별빛 아래,<br>
       우리 함께 따뜻한 크리스마스의 추억을 만들어가요.
+    </p>
+
+    <p class="invite-donation">
+      * 예수님의 사랑을 전하기 위해 파티 및 공연에 사용된 금액은<br>
+      전액 <strong style="color: #8B2635;">Save the Children</strong>에 기부됩니다.
     </p>
 
     <p class="invite-end">여러분을 진심으로 초대합니다.</p>
@@ -590,13 +600,24 @@ function gbRender() {
   });
   gbMore.hidden = gbItems.length <= gbShown;
 }
+// 마지막으로 불러온 방명록을 휴대폰에 저장해 두었다가, 다음에 열 때 바로 보여주기
+const GB_CACHE = 'gb-cache';
+function gbSaveCache() {
+  try { localStorage.setItem(GB_CACHE, JSON.stringify(gbItems.slice(0, 50))); } catch (e) {}
+}
 function gbLoad() {
   if (!GUESTBOOK_URL) { gbList.innerHTML = '<li class="gb-empty">방명록 준비 중입니다</li>'; return; }
-  gbList.innerHTML = '<li class="gb-empty">불러오는 중…</li>';
-  fetch(GUESTBOOK_URL)
+  let cached = null;
+  try { cached = JSON.parse(localStorage.getItem(GB_CACHE)); } catch (e) {}
+  if (Array.isArray(cached) && cached.length) {
+    gbItems = cached; gbRender();          // 1) 저장해 둔 목록을 먼저 즉시 표시
+  } else {
+    gbList.innerHTML = '<li class="gb-empty">불러오는 중…</li>';
+  }
+  fetch(GUESTBOOK_URL)                     // 2) 최신 목록을 받아서 바꿔치기
     .then(r => r.json())
-    .then(list => { gbItems = list; gbRender(); })
-    .catch(() => { gbList.innerHTML = '<li class="gb-empty">방명록을 불러오지 못했어요</li>'; });
+    .then(list => { gbItems = list; gbRender(); gbSaveCache(); })
+    .catch(() => { if (!gbItems.length) gbList.innerHTML = '<li class="gb-empty">방명록을 불러오지 못했어요</li>'; });
 }
 gbMore.addEventListener('click', () => { gbShown += GB_PAGE; gbRender(); });
 
@@ -614,21 +635,14 @@ gbForm.addEventListener('submit', e => {
       if (!res.ok) throw 0;
       gbItems.unshift({ name, msg, time: Date.now() });   // 바로 목록 맨 위에 보이기
       gbRender();
+      gbSaveCache(); 
       gbForm.reset();
     })
     .catch(() => alert('잠시 후 다시 시도해주세요'))
     .finally(() => { btn.disabled = false; btn.textContent = '남기기'; });
 });
 
-// 방명록도 스크롤해서 가까이 왔을 때 불러오기
-if ('IntersectionObserver' in window) {
-  const gbIo = new IntersectionObserver(entries => {
-    if (entries.some(e => e.isIntersecting)) { gbLoad(); gbIo.disconnect(); }
-  }, { rootMargin: '600px' });
-  gbIo.observe(gbForm);
-} else {
-  gbLoad();
-}
+gbLoad();
 
 /* ── 눈 내리는 효과 ── */
 const canvas = document.getElementById('snow');
